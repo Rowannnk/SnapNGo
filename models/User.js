@@ -15,6 +15,10 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
+    school: {
+      type: String,
+      required: true,
+    },
     profileImageUrl: {
       type: String,
       default: "",
@@ -55,6 +59,10 @@ const userSchema = new Schema(
           quantity: {
             type: Number,
             default: 1,
+          },
+          isEquipped: {
+            type: Boolean,
+            default: false,
           },
         },
       ],

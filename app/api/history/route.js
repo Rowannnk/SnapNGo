@@ -9,6 +9,7 @@ export async function POST(request) {
     const body = await request.json();
     console.log("Received request body:", body);
 
+    // Validate required fields
     if (!body.type || !body.title || !body.description) {
       return NextResponse.json(
         { error: "Missing required fields: type, title, description" },
@@ -16,12 +17,13 @@ export async function POST(request) {
       );
     }
 
+    // Create a new history document
     const historyData = new History(body);
     await historyData.save();
 
     return NextResponse.json({
       message: "History data added successfully",
-      faculty,
+      data: historyData, // Return the saved history data
     });
   } catch (error) {
     console.error("Error inserting history data:", error);

@@ -19,7 +19,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Error inserting faculty data:", error);
     return NextResponse.json(
-      { error: "Failed to insert data", details: error.message }, // Include details for debugging
+      { error: "Failed to insert data", details: error.message },
       { status: 500 }
     );
   }
@@ -45,6 +45,8 @@ export async function GET(request) {
       imageLogoName: faculty.imageLogoName,
       locationLat: faculty.locationLat,
       locationLong: faculty.locationLong,
+      link: faculty.link,
+      images: faculty.images,
       createdAt: faculty.createdAt,
       updatedAt: faculty.updatedAt,
     }));

@@ -25,6 +25,8 @@ export async function GET(request, { params }) {
       socialMedia: faculty.socialMedia,
       locationLat: faculty.locationLat,
       locationLong: faculty.locationLong,
+      link: faculty.link,
+      images: faculty.images,
       createdAt: faculty.createdAt,
       updatedAt: faculty.updatedAt,
     };

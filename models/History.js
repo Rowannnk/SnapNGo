@@ -4,13 +4,14 @@ const historySchema = new mongoose.Schema({
   type: { type: String, required: true },
   title: { type: String, required: true },
   description: { type: String, required: true },
-  image: { type: String, default: "" },
+  images: { type: [String], default: [] },
   campuses: [
     {
       name: { type: String, required: false },
       description: { type: String, required: false },
       location: { type: String, required: false },
-      image: { type: String, default: "" },
+      images: { type: [String], default: [] },
+      link: { type: String, default: "" },
     },
   ],
   chapels: [
@@ -18,7 +19,8 @@ const historySchema = new mongoose.Schema({
       name: { type: String, required: false },
       location: { type: String, required: false },
       description: { type: String, required: false },
-      image: { type: String, default: "" },
+      images: { type: [String], default: [] },
+      link: { type: String, default: "" },
     },
   ],
 });

@@ -15,8 +15,10 @@ const FacultySchema = new mongoose.Schema(
     longDescription: { type: String, required: false },
     abbreviation: { type: String, required: false },
     imageLogoName: { type: String, required: false },
-    locationLat: { type: Number, required: false }, // Updated property
-    locationLong: { type: Number, required: false }, // Updated property
+    locationLat: { type: Number, required: false },
+    locationLong: { type: Number, required: false },
+    link: { type: String, default: "" },
+    images: { type: [String], default: [] },
   },
   { timestamps: true }
 );

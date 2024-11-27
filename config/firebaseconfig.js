@@ -1,16 +1,16 @@
 import { initializeApp } from "firebase/app";
-import "firebase/auth";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCcRDw5Vkcyt0FEzH6LW3nc6sMImnDgINU",
-  authDomain: "snapngo-d1422.firebaseapp.com",
-  projectId: "snapngo-d1422",
-  storageBucket: "snapngo-d1422.appspot.com",
-  messagingSenderId: "536394095250",
-  appId: "1:536394095250:web:7cd1f700f61d020056244b",
-  measurementId: "G-ZWFB2GDD4E",
+  apiKey: "AIzaSyDIV308O4Pq31AtwHS-Ye6ywesEgzm_sko",
+  authDomain: "snapngo-4e18b.firebaseapp.com",
+  projectId: "snapngo-4e18b",
+  storageBucket: "snapngo-4e18b.firebasestorage.app",
+  messagingSenderId: "263960076808",
+  appId: "1:263960076808:web:c45e690e46463cfc5f27bd",
+  measurementId: "G-MRS859MMYC",
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-export default app;
+export const storage = getStorage(app);

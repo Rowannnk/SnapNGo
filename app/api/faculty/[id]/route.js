@@ -40,3 +40,33 @@ export async function GET(request, { params }) {
     );
   }
 }
+
+export async function PATCH(request, { params }) {
+  await dbConnect();
+
+  const { id } = params;
+
+  try {
+    // Parse the JSON body from the request
+    const updatedData = await request.json();
+
+    // Find and update the faculty document
+    const updatedFaculty = await Faculty.findByIdAndUpdate(
+      id,
+      { $set: updatedData },
+      { new: true, runValidators: true } // `new: true` returns the updated document
+    );
+
+    if (!updatedFaculty) {
+      return NextResponse.json({ error: "Faculty not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(updatedFaculty);
+  } catch (error) {
+    console.error("Error updating faculty data:", error);
+    return NextResponse.json(
+      { error: "Failed to update data", details: error.message },
+      { status: 500 }
+    );
+  }
+}

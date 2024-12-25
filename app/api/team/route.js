@@ -1,13 +1,38 @@
 import Team from "@/models/Team";
 import dbConnect from "@/utils/dbConnect";
 import { NextResponse } from "next/server";
+import User from "@/models/User";
+import Quiz from "@/models/Quiz";
 
 export async function POST(request) {
   try {
-    const { teamName, adminUsername, teamImageUrl, totalTasks, maxMember } =
-      await request.json();
+    const {
+      teamName,
+      adminUsername,
+      teamImageUrl,
+      maxMember,
+      assignedQuizzes,
+    } = await request.json();
 
     await dbConnect();
+
+    // Find the admin user by username
+    const adminUser = await User.findOne({ name: adminUsername });
+
+    if (!adminUser) {
+      return NextResponse.json(
+        { message: "Admin user not found." },
+        { status: 404 }
+      );
+    }
+
+    // Ensure the user has the "admin" role
+    if (adminUser.role !== "admin") {
+      return NextResponse.json(
+        { message: "Only admin users can create teams." },
+        { status: 403 }
+      );
+    }
 
     // Check if a team with the same name already exists
     const existingTeam = await Team.findOne({ teamName });
@@ -18,15 +43,28 @@ export async function POST(request) {
       );
     }
 
-    // Create a new team
+    const quizzes = await Quiz.find({ _id: { $in: assignedQuizzes } });
+
+    if (quizzes.length !== assignedQuizzes.length) {
+      return NextResponse.json(
+        { message: "Quizzes not found" },
+        { status: 400 }
+      );
+    }
+
+    // Create the new team and add the admin as the first member
     const newTeam = await Team.create({
       teamName,
       adminUsername,
       teamImageUrl: teamImageUrl || "",
-      totalTasks: totalTasks || 0,
       maxMember,
-      members: [],
+      members: [adminUser._id],
+      assignedQuizzes,
     });
+
+    // Optionally link the admin user to the team
+    adminUser.teamId = newTeam._id;
+    await adminUser.save();
 
     return NextResponse.json(
       { message: "Team created successfully.", team: newTeam },
@@ -45,7 +83,7 @@ export async function GET() {
   try {
     await dbConnect();
 
-    const teams = await Team.find();
+    const teams = await Team.find().populate("assignedQuizzes"); //To include quiz details
     return NextResponse.json(
       { message: "Teams retrieved successfully.", teams },
       { status: 200 }

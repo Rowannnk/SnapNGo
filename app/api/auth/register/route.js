@@ -43,15 +43,16 @@ export async function POST(request) {
       name,
       email,
       password: hashPassword,
-      school,
-      dob: dob || null,
       school: school || "",
+      dob: dob || null,
       address: address || "",
       totalPoints: 0,
       totalTasks: 0,
       tasks: [],
       completedTasks: [],
       inventory: [],
+      teamId: null,
+      role: "user",
     });
 
     // Create a JWT token for the newly created user

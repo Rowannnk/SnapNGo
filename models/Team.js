@@ -15,6 +15,10 @@ const teamSchema = new Schema(
       type: String,
       default: "",
     },
+    totalPoints: {
+      type: Number,
+      default: 0, // Total points scored by all team members
+    },
     totalTasks: {
       type: Number,
       default: 0,
@@ -26,6 +30,10 @@ const teamSchema = new Schema(
     maxMember: {
       type: Number,
       required: true,
+    },
+    assignedQuizzes: {
+      type: [{ type: Schema.Types.ObjectId, ref: "Quiz" }],
+      default: [],
     },
   },
   { timestamps: true }

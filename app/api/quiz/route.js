@@ -32,45 +32,36 @@ export async function POST(request) {
 }
 
 export async function GET(request) {
-  await dbConnect(); // Ensure the database connection is established
+  await dbConnect();
 
   try {
-    // Get the query parameters from the request URL
     const url = new URL(request.url);
-    const location = url.searchParams.get("location"); // Extract the 'location' query parameter
+    const locations = url.searchParams.getAll("locations"); // Get multiple `locations` values as an array
 
-    if (!location) {
-      return NextResponse.json({
-        error: "Location is required.",
-      });
+    if (locations.length === 0) {
+      return NextResponse.json(
+        { error: "Locations parameter is required" },
+        { status: 400 }
+      );
     }
 
-    // Log the location to verify
-    console.log("Location being searched for:", location);
-
-    // Search for quizzes based on the location
-    const locationData = await Quiz.findOne({
-      location: {
-        $regex: new RegExp(location, "i"), // Case-insensitive search for location
-      },
+    const quizzes = await Quiz.find({
+      location: { $in: locations.map((loc) => new RegExp(loc, "i")) },
     });
 
-    // Log the found location data
-    console.log("Location data:", locationData);
-
-    if (!locationData) {
-      return NextResponse.json({
-        error: "No quizzes found for this location.",
-      });
+    if (quizzes.length === 0) {
+      return NextResponse.json(
+        { message: "No quizzes found for the specified locations" },
+        { status: 404 }
+      );
     }
 
-    // Return the quizzes for the specified location
-    return NextResponse.json(locationData.quizzes);
+    return NextResponse.json(quizzes, { status: 200 });
   } catch (error) {
-    console.error("Error retrieving quizzes", error);
-    return NextResponse.json({
-      error: "Failed to retrieve quizzes.",
-      details: error.message,
-    });
+    console.error("Error retrieving quizzes:", error);
+    return NextResponse.json(
+      { error: "Failed to retrieve quizzes", details: error.message },
+      { status: 500 }
+    );
   }
 }

@@ -26,9 +26,7 @@ const userSchema = new Schema(
     dob: {
       type: Date,
     },
-    school: {
-      type: String,
-    },
+
     address: {
       type: String,
     },
@@ -40,10 +38,16 @@ const userSchema = new Schema(
       type: Number,
       default: 0,
     },
-    tasks: {
-      type: [String],
-      default: [],
-    },
+    tasks: [
+      {
+        quizId: { type: Schema.Types.ObjectId, ref: "Quiz" }, // Quiz assigned to the user
+        status: {
+          type: String,
+          enum: ["pending", "completed"],
+          default: "pending",
+        },
+      },
+    ],
     completedTasks: {
       type: [String],
       default: [],
@@ -72,6 +76,10 @@ const userSchema = new Schema(
       type: String,
       enum: ["admin", "user"],
       default: "user",
+    },
+    teamId: {
+      type: Schema.Types.ObjectId,
+      ref: "Team", // References the Team model
     },
   },
   { timestamps: true }

@@ -7,17 +7,29 @@ export async function POST(request) {
   try {
     const { userId, teamId } = await request.json();
 
-    // Ensure database connection
     await dbConnect();
+
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    // Check if the user is already part of a team
+    if (user.teamId) {
+      return NextResponse.json(
+        { message: "User is already part of a team" },
+        { status: 400 }
+      );
+    }
 
     // Fetch the team
     const team = await Team.findById(teamId);
-
     if (!team) {
       return NextResponse.json({ message: "Team not found" }, { status: 404 });
     }
 
-    // Check if team has reached max member capacity
+    // Check if the team has reached its max member capacity
     if (team.members.length >= team.maxMember) {
       return NextResponse.json(
         { message: "Team has reached maximum member capacity" },
@@ -25,7 +37,7 @@ export async function POST(request) {
       );
     }
 
-    // Check if the user is already a member
+    // Check if the user is already in the members list (redundant check)
     if (team.members.includes(userId)) {
       return NextResponse.json(
         { message: "User is already a member of this team" },
@@ -33,17 +45,17 @@ export async function POST(request) {
       );
     }
 
-    // Add the user to the members array
+    // Add the user to the team members list
     team.members.push(userId);
     await team.save();
 
-    // Update the user's totalTasks to match the team's totalTasks
-    const user = await User.findById(userId);
-    if (user) {
-      user.totalTasks = team.totalTasks; // Set user's totalTasks to match team's totalTasks
-      user.teamId = team._id; // Optionally link the user to the team by setting teamId
-      await user.save();
-    }
+    // Update the user's teamId and sync totalTasks
+    user.teamId = team._id;
+    user.tasks = team.assignedQuizzes.map((quiz) => ({
+      quizId: quiz._id,
+      status: "pending",
+    }));
+    await user.save();
 
     return NextResponse.json(
       { message: "User joined the team successfully.", team },

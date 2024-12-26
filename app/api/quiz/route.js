@@ -10,24 +10,48 @@ export async function POST(request) {
     const { location, quizzes } = body;
 
     if (!location || !quizzes) {
-      return NextResponse.json({
-        error: "Location and quizzes are required",
-      });
+      return NextResponse.json(
+        { error: "Location and quizzes are required" },
+        { status: 400 }
+      );
     }
 
-    const newQuiz = new Quiz({ location, quizzes });
+    // Validate each quiz entry
+    const formattedQuizzes = quizzes.map((quiz) => {
+      const { question, options, answer, rewardPoints } = quiz;
+
+      if (!question || !options || typeof answer !== "number") {
+        throw new Error(
+          "Each quiz must have a question, options, and an answer index"
+        );
+      }
+
+      if (answer < 0 || answer >= options.length) {
+        throw new Error("Answer index is out of bounds for the options array");
+      }
+
+      return {
+        question,
+        options,
+        answer,
+        rewardPoints,
+      };
+    });
+
+    // Save the new quiz
+    const newQuiz = new Quiz({ location, quizzes: formattedQuizzes });
     await newQuiz.save();
 
-    return NextResponse.json({
-      message: "Quiz created successfully!",
-      quiz: newQuiz,
-    });
+    return NextResponse.json(
+      { message: "Quiz created successfully!", quiz: newQuiz },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error Saving Quiz:", error);
-    return NextResponse.json({
-      error: "Failed to save quiz.",
-      details: error.message,
-    });
+    return NextResponse.json(
+      { error: "Failed to save quiz.", details: error.message },
+      { status: 500 }
+    );
   }
 }
 
@@ -36,7 +60,7 @@ export async function GET(request) {
 
   try {
     const url = new URL(request.url);
-    const locations = url.searchParams.getAll("locations"); // Get multiple `locations` values as an array
+    const locations = url.searchParams.getAll("locations");
 
     if (locations.length === 0) {
       return NextResponse.json(

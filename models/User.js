@@ -77,9 +77,10 @@ const userSchema = new Schema(
       enum: ["admin", "user"],
       default: "user",
     },
-    teamId: {
-      type: Schema.Types.ObjectId,
-      ref: "Team", // References the Team model
+    teamIds: {
+      type: [Schema.Types.ObjectId],
+      ref: "Team",
+      default: [],
     },
   },
   { timestamps: true }

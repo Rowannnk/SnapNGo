@@ -16,8 +16,12 @@ const quizSchema = new mongoose.Schema({
         required: true,
       },
       answer: {
-        type: String,
+        type: Number,
         required: true,
+      },
+      rewardPoints: {
+        type: Number,
+        default: 10,
       },
     },
   ],

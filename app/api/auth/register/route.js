@@ -13,27 +13,15 @@ export async function POST(request) {
 
     await dbConnect();
 
-    // Check if the user or email already exists
-    const existingUser = await User.findOne({ $or: [{ name }, { email }] });
+    // Check if the email already exists
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      if (existingUser.name === name) {
-        return NextResponse.json(
-          {
-            message:
-              "Username is already taken. Please choose a different username.",
-          },
-          { status: 400 }
-        );
-      }
-      if (existingUser.email === email) {
-        return NextResponse.json(
-          {
-            message:
-              "Email is already registered. Please use a different email.",
-          },
-          { status: 400 }
-        );
-      }
+      return NextResponse.json(
+        {
+          message: "Email is already registered. Please use a different email.",
+        },
+        { status: 400 }
+      );
     }
 
     // Hash the password before storing it

@@ -39,7 +39,7 @@ export async function POST(request) {
       tasks: [],
       completedTasks: [],
       inventory: [],
-      teamId: null,
+      teamIds: [],
       role: "user",
     });
 
@@ -69,6 +69,7 @@ export async function POST(request) {
           completedTasks: newUser.completedTasks,
           inventory: newUser.inventory,
           role: newUser.role,
+          teamIds: newUser.teamIds,
         },
       },
       { status: 201 }

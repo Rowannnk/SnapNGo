@@ -83,9 +83,20 @@ export async function GET() {
   try {
     await dbConnect();
 
-    const teams = await Team.find().populate("assignedQuizzes"); //To include quiz details
+    // Fetch teams and populate only _id for assignedQuizzes
+    const teams = await Team.find().populate({
+      path: "assignedQuizzes",
+      select: "_id",
+    });
+
+    // Transform assignedQuizzes into an array of plain IDs
+    const transformedTeams = teams.map((team) => ({
+      ...team.toObject(),
+      assignedQuizzes: team.assignedQuizzes.map((quiz) => quiz._id.toString()),
+    }));
+
     return NextResponse.json(
-      { message: "Teams retrieved successfully.", teams },
+      { message: "Teams retrieved successfully.", teams: transformedTeams },
       { status: 200 }
     );
   } catch (error) {

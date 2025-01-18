@@ -9,17 +9,21 @@ export async function GET(request, { params }) {
 
     await dbConnect();
 
-    const team = await Team.findById(id).populate(
-      "members",
-      "name profileImageUrl totalPoints"
-    );
+    // Fetch the team and include only member IDs
+    const team = await Team.findById(id).populate("members", "_id");
 
     if (!team) {
       return NextResponse.json({ message: "Team not found" }, { status: 404 });
     }
 
+    // Transform members to an array of plain IDs
+    const transformedTeam = {
+      ...team.toObject(),
+      members: team.members.map((member) => member._id.toString()),
+    };
+
     return NextResponse.json(
-      { message: "Team retrieved successfully.", team },
+      { message: "Team retrieved successfully.", team: transformedTeam },
       { status: 200 }
     );
   } catch (error) {

@@ -2,6 +2,7 @@ import Team from "@/models/Team";
 import dbConnect from "@/utils/dbConnect";
 import User from "@/models/User";
 import { NextResponse } from "next/server";
+import Quiz from "@/models/Quiz";
 
 export async function GET(request, { params }) {
   try {
@@ -9,27 +10,37 @@ export async function GET(request, { params }) {
 
     await dbConnect();
 
-    // Fetch the team and include only member IDs
-    const team = await Team.findById(id).populate("members", "_id");
+    // Fetch the team and populate full details for members and assigned quizzes
+    const team = await Team.findById(id)
+      .populate({
+        path: "members",
+        select:
+          "name email school profileImageUrl dob address totalPoints totalTasks tasks inventory role teamIds", // Include all desired fields for members
+        populate: {
+          path: "tasks.quizId", // Populate the `quizId` field within tasks
+          select: "location quizzes", // Include quiz details
+        },
+      })
+      .populate({
+        path: "assignedQuizzes",
+        select: "location quizzes", // Include quiz details for assigned quizzes
+      });
 
     if (!team) {
       return NextResponse.json({ message: "Team not found" }, { status: 404 });
     }
 
-    // Transform members to an array of plain IDs
-    const transformedTeam = {
-      ...team.toObject(),
-      members: team.members.map((member) => member._id.toString()),
-    };
-
     return NextResponse.json(
-      { message: "Team retrieved successfully.", team: transformedTeam },
+      { message: "Team retrieved successfully.", team },
       { status: 200 }
     );
   } catch (error) {
     console.error("Error retrieving team:", error);
     return NextResponse.json(
-      { message: "An error occurred while retrieving the team." },
+      {
+        message: "An error occurred while retrieving the team.",
+        error: error.message,
+      },
       { status: 500 }
     );
   }

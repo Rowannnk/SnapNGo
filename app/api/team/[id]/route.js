@@ -10,20 +10,10 @@ export async function GET(request, { params }) {
     await dbConnect();
 
     // Fetch the team by ID and populate quiz details inside assignedQuizzes
-    const team = await Team.findById(id)
-      // .populate({
-      //   path: "assignedQuizzes", // Path to the assigned quizzes field
-      //   model: "Quiz", // Specify the Quiz model
-      //   select: "_id location quizzes", // Select the fields you need from Quiz
-      //   populate: {
-      //     path: "quizzes", // Populate the quizzes array inside Quiz
-      //     select: "question options answer rewardPoints", // Select the fields you need from the quizzes array
-      //   },
-      // })
-      .populate({
-        path: "members", // Populate member details
-        select: "name email profileImageUrl role teamIds", // Include specific member fields
-      });
+    const team = await Team.findById(id).populate({
+      path: "members", // Populate member details
+      select: "name email profileImageUrl role teamIds", // Include specific member fields
+    });
 
     if (!team) {
       return NextResponse.json({ message: "Team not found." }, { status: 404 });

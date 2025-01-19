@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 export async function POST(request) {
   await dbConnect();
 
-  const { userId, taskId } = await request.json();
+  const { userId, taskId, selectedAnswer } = await request.json();
 
   try {
     const user = await User.findById(userId);
@@ -14,14 +14,11 @@ export async function POST(request) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Find the task by taskId
     const task = user.tasks.id(taskId);
-
     if (!task) {
       return NextResponse.json({ message: "Task not found" }, { status: 404 });
     }
 
-    // Check if the task is already completed
     if (task.status === "completed") {
       return NextResponse.json(
         { message: "Task already completed" },
@@ -29,7 +26,6 @@ export async function POST(request) {
       );
     }
 
-    // Find the quiz in the quizzes array using task.quizId
     const quiz = await Quiz.findOne({
       "quizzes._id": task.quizId, // Match the quizId inside the quizzes array
     });
@@ -38,16 +34,41 @@ export async function POST(request) {
       return NextResponse.json({ message: "Quiz not found" }, { status: 404 });
     }
 
+    const quizQuestion = quiz.quizzes.find(
+      (q) => q._id.toString() === task.quizId.toString()
+    );
+
+    if (!quizQuestion) {
+      return NextResponse.json(
+        { message: "Quiz question not found" },
+        { status: 404 }
+      );
+    }
+
+    const isAnswerCorrect = selectedAnswer === quizQuestion.answer;
+
     task.status = "completed";
 
-    user.totalPoints += quiz.quizzes.find(
-      (q) => q._id.toString() === task.quizId.toString()
-    ).rewardPoints;
+    if (isAnswerCorrect) {
+      user.totalPoints += quizQuestion.rewardPoints;
+    }
+
+    const sumTasks = user.tasks.length;
+    user.totalTasks = user.tasks.filter((t) => t.status === "completed").length;
+
+    const completedTasks = user.tasks.filter(
+      (t) => t.status === "completed"
+    ).length;
 
     await user.save();
 
     return NextResponse.json(
-      { message: "Task completed successfully", user },
+      {
+        message: "Task completed successfully",
+        user,
+        isAnswerCorrect,
+        progress: `${completedTasks}/${sumTasks}`, // Task progress as "completed/total"
+      },
       { status: 200 }
     );
   } catch (error) {

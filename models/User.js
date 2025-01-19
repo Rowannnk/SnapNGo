@@ -49,10 +49,6 @@ const userSchema = new Schema(
         },
       },
     ],
-    completedTasks: {
-      type: [String],
-      default: [],
-    },
     inventory: {
       type: [
         {

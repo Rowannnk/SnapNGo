@@ -68,6 +68,9 @@ export async function POST(request) {
 
       // Add the quizzes to the user's tasks array
       user.tasks.push(...tasks);
+
+      user.totalTasks += tasks.length;
+
       await user.save(); // Save the updated user document
     }
 

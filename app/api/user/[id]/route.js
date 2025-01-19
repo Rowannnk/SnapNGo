@@ -1,3 +1,4 @@
+import Team from "@/models/Team";
 import User from "@/models/User";
 import dbConnect from "@/utils/dbConnect";
 import { NextResponse } from "next/server";
@@ -59,14 +60,21 @@ export async function DELETE(request, { params }) {
   const { id } = params;
 
   try {
-    const deletedUser = await User.findByIdAndDelete(id);
-
-    if (!deletedUser) {
+    const user = await User.findById(id);
+    if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
+    // Remove user from all teams
+    await Team.updateMany(
+      { members: id }, // Find all teams where user is a member
+      { $pull: { members: id } } // Remove user ID from members array
+    );
+
+    await user.deleteOne(); // This will delete the user
+
     return NextResponse.json(
-      { message: "User deleted successfully" },
+      { message: "User deleted successfully and removed from teams" },
       { status: 200 }
     );
   } catch (error) {

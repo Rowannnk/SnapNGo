@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import Team from "./Team";
 
 const userSchema = new Schema(
   {
@@ -84,6 +85,27 @@ const userSchema = new Schema(
     },
   },
   { timestamps: true }
+);
+
+// Middleware to remove user from teams before deletion
+userSchema.pre(
+  "deleteOne",
+  { document: true, query: false },
+  async function (next) {
+    try {
+      const userId = this._id;
+
+      // Remove the user from all teams they were a part of
+      await Team.updateMany(
+        { members: userId },
+        { $pull: { members: userId } }
+      );
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  }
 );
 
 const User = mongoose.models.User || mongoose.model("User", userSchema);

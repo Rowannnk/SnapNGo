@@ -12,7 +12,7 @@ export async function GET(request, { params }) {
     // Fetch the team by ID and populate quiz details inside assignedQuizzes
     const team = await Team.findById(id).populate({
       path: "members", // Populate member details
-      select: "name email profileImageUrl role teamIds", // Include specific member fields
+      select: "name email profileImageUrl role teamIds totalPoints", // Include specific member fields
     });
 
     if (!team) {

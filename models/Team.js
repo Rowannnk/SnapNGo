@@ -15,10 +15,10 @@ const teamSchema = new Schema(
       type: String,
       default: "",
     },
-    totalPoints: {
-      type: Number,
-      default: 0, // Total points scored by all team members
-    },
+    // totalPoints: {
+    //   type: Number,
+    //   default: 0, // Total points scored by all team members
+    // },
     totalTasks: {
       type: Number,
       default: 0,

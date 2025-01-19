@@ -11,7 +11,7 @@ export async function POST(request) {
       adminUsername,
       teamImageUrl,
       maxMember,
-      assignedQuizzes,
+      assignedQuizzes, // Array of quiz locations (e.g., ["msme", "arts"])
     } = await request.json();
 
     await dbConnect();
@@ -43,23 +43,24 @@ export async function POST(request) {
       );
     }
 
-    const quizzes = await Quiz.find({ _id: { $in: assignedQuizzes } });
+    // Fetch quizzes based on locations
+    const quizzes = await Quiz.find({
+      location: { $in: assignedQuizzes },
+    }).select("quizzes"); // Fetch the quizzes array inside each quiz document
 
-    if (quizzes.length !== assignedQuizzes.length) {
-      return NextResponse.json(
-        { message: "Quizzes not found" },
-        { status: 400 }
-      );
-    }
+    // Extract individual question IDs from the quizzes
+    const allQuestionIds = quizzes.flatMap(
+      (quiz) => quiz.quizzes.map((q) => q._id) // Get the _id of each question
+    );
 
-    // Create the new team and add the admin as the first member
+    // Create the new team
     const newTeam = await Team.create({
       teamName,
       adminUsername,
       teamImageUrl: teamImageUrl || "",
       maxMember,
       members: [adminUser._id],
-      assignedQuizzes,
+      assignedQuizzes: allQuestionIds, // Store individual question IDs
     });
 
     // Optionally link the admin user to the team
@@ -67,7 +68,10 @@ export async function POST(request) {
     await adminUser.save();
 
     return NextResponse.json(
-      { message: "Team created successfully.", team: newTeam },
+      {
+        message: "Team created successfully.",
+        team: newTeam,
+      },
       { status: 201 }
     );
   } catch (error) {

@@ -2,34 +2,34 @@ import Team from "@/models/Team";
 import dbConnect from "@/utils/dbConnect";
 import User from "@/models/User";
 import { NextResponse } from "next/server";
-import Quiz from "@/models/Quiz";
 
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = params; // Get the team ID from the URL parameters
 
     await dbConnect();
 
-    // Fetch the team and populate full details for members and assigned quizzes
+    // Fetch the team by ID and populate quiz details inside assignedQuizzes
     const team = await Team.findById(id)
+      // .populate({
+      //   path: "assignedQuizzes", // Path to the assigned quizzes field
+      //   model: "Quiz", // Specify the Quiz model
+      //   select: "_id location quizzes", // Select the fields you need from Quiz
+      //   populate: {
+      //     path: "quizzes", // Populate the quizzes array inside Quiz
+      //     select: "question options answer rewardPoints", // Select the fields you need from the quizzes array
+      //   },
+      // })
       .populate({
-        path: "members",
-        select:
-          "name email school profileImageUrl dob address totalPoints totalTasks tasks inventory role teamIds", // Include all desired fields for members
-        populate: {
-          path: "tasks.quizId", // Populate the `quizId` field within tasks
-          select: "location quizzes", // Include quiz details
-        },
-      })
-      .populate({
-        path: "assignedQuizzes",
-        select: "location quizzes", // Include quiz details for assigned quizzes
+        path: "members", // Populate member details
+        select: "name email profileImageUrl role teamIds", // Include specific member fields
       });
 
     if (!team) {
-      return NextResponse.json({ message: "Team not found" }, { status: 404 });
+      return NextResponse.json({ message: "Team not found." }, { status: 404 });
     }
 
+    // Return the team details with populated assignedQuizzes
     return NextResponse.json(
       { message: "Team retrieved successfully.", team },
       { status: 200 }
@@ -37,10 +37,7 @@ export async function GET(request, { params }) {
   } catch (error) {
     console.error("Error retrieving team:", error);
     return NextResponse.json(
-      {
-        message: "An error occurred while retrieving the team.",
-        error: error.message,
-      },
+      { message: "An error occurred while retrieving the team." },
       { status: 500 }
     );
   }

@@ -11,7 +11,7 @@ export async function POST(request) {
       adminUsername,
       teamImageUrl,
       maxMember,
-      assignedQuizzes, // Array of quiz locations (e.g., ["msme", "arts"])
+      assignedQuizzes, //(e.g., ["msme", "arts"])
     } = await request.json();
 
     await dbConnect();
@@ -55,18 +55,17 @@ export async function POST(request) {
 
     const totalTasks = allQuestionIds.length;
 
-    // Create the new team
     const newTeam = await Team.create({
       teamName,
       adminUsername,
       teamImageUrl: teamImageUrl || "",
       maxMember,
       members: [adminUser._id],
-      assignedQuizzes: allQuestionIds, // Store individual question IDs
+      assignedQuizzes: allQuestionIds,
       totalTasks: totalTasks,
     });
 
-    // Optionally link the admin user to the team
+    // link the admin user to the team
     adminUser.teamId = newTeam._id;
     await adminUser.save();
 
@@ -99,8 +98,8 @@ export async function GET() {
     // Transform the data to include only the IDs for assignedQuizzes and members
     const transformedTeams = teams.map((team) => ({
       ...team,
-      assignedQuizzes: team.assignedQuizzes || [], // Ensure assignedQuizzes is an array of IDs
-      members: team.members || [], // Ensure members is an array of IDs
+      assignedQuizzes: team.assignedQuizzes || [],
+      members: team.members || [],
     }));
 
     return NextResponse.json(

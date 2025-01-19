@@ -53,6 +53,8 @@ export async function POST(request) {
       (quiz) => quiz.quizzes.map((q) => q._id) // Get the _id of each question
     );
 
+    const totalTasks = allQuestionIds.length;
+
     // Create the new team
     const newTeam = await Team.create({
       teamName,
@@ -61,6 +63,7 @@ export async function POST(request) {
       maxMember,
       members: [adminUser._id],
       assignedQuizzes: allQuestionIds, // Store individual question IDs
+      totalTasks: totalTasks,
     });
 
     // Optionally link the admin user to the team
@@ -87,16 +90,17 @@ export async function GET() {
   try {
     await dbConnect();
 
-    // Fetch teams and populate only _id for assignedQuizzes
-    const teams = await Team.find().populate({
-      path: "assignedQuizzes",
-      select: "_id",
-    });
+    const teams = await Team.find()
+      .select(
+        "teamName adminUsername teamImageUrl totalPoints totalTasks maxMember assignedQuizzes members"
+      )
+      .lean(); // .lean() returns plain JavaScript objects
 
-    // Transform assignedQuizzes into an array of plain IDs
+    // Transform the data to include only the IDs for assignedQuizzes and members
     const transformedTeams = teams.map((team) => ({
-      ...team.toObject(),
-      assignedQuizzes: team.assignedQuizzes.map((quiz) => quiz._id.toString()),
+      ...team,
+      assignedQuizzes: team.assignedQuizzes || [], // Ensure assignedQuizzes is an array of IDs
+      members: team.members || [], // Ensure members is an array of IDs
     }));
 
     return NextResponse.json(
@@ -106,7 +110,7 @@ export async function GET() {
   } catch (error) {
     console.error("Error retrieving teams:", error);
     return NextResponse.json(
-      { message: "An error occurred while retrieving teams." },
+      { message: "An error occurred while retrieving the teams." },
       { status: 500 }
     );
   }

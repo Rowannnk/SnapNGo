@@ -2,20 +2,80 @@ import Team from "@/models/Team";
 import User from "@/models/User";
 import dbConnect from "@/utils/dbConnect";
 import { NextResponse } from "next/server";
+import Quiz from "@/models/Quiz";
+
+// export async function GET(request, { params }) {
+//   await dbConnect();
+
+//   const { id } = await params;
+
+//   try {
+//     const user = await User.findById(id);
+
+//     if (!user) {
+//       return NextResponse.json({ error: "User not found" }, { status: 404 });
+//     }
+
+//     return NextResponse.json(user);
+//   } catch (error) {
+//     console.error("Error retrieving user data by ID:", error);
+//     return NextResponse.json(
+//       { error: "Failed to retrieve data", details: error.message },
+//       { status: 500 }
+//     );
+//   }
+// }
 
 export async function GET(request, { params }) {
   await dbConnect();
 
-  const { id } = await params;
+  const { id } = params;
 
   try {
+    // Find the user by ID
     const user = await User.findById(id);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    // Aggregate quiz details for tasks
+    const quizIds = user.tasks.map((task) => task.quizId);
+
+    const quizzes = await Quiz.aggregate([
+      { $unwind: "$quizzes" },
+      {
+        $match: {
+          "quizzes._id": { $in: quizIds }, // Match quiz IDs
+        },
+      },
+      {
+        $project: {
+          _id: "$quizzes._id",
+          question: "$quizzes.question",
+          options: "$quizzes.options",
+          answer: "$quizzes.answer",
+          rewardPoints: "$quizzes.rewardPoints",
+        },
+      },
+    ]);
+
+    // Map quiz details to tasks
+    const tasksWithDetails = user.tasks.map((task) => {
+      const quiz = quizzes.find((quiz) => quiz._id.equals(task.quizId));
+      return {
+        ...task.toObject(),
+        quizDetails: quiz || null, // Attach quiz details if found
+      };
+    });
+
+    // Attach the detailed tasks back to the user object
+    const userWithDetails = {
+      ...user.toObject(),
+      tasks: tasksWithDetails,
+    };
+
+    return NextResponse.json(userWithDetails);
   } catch (error) {
     console.error("Error retrieving user data by ID:", error);
     return NextResponse.json(

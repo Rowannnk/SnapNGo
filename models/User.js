@@ -41,7 +41,7 @@ const userSchema = new Schema(
     },
     tasks: [
       {
-        quizId: { type: Schema.Types.ObjectId, ref: "Quiz" }, // Quiz assigned to the user
+        quizId: { type: Schema.Types.ObjectId, ref: "Quiz" },
         status: {
           type: String,
           enum: ["pending", "completed"],

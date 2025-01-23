@@ -54,8 +54,6 @@ export async function POST(request) {
     }
 
     const sumTasks = user.tasks.length;
-    user.totalTasks = user.tasks.filter((t) => t.status === "completed").length;
-
     const completedTasks = user.tasks.filter(
       (t) => t.status === "completed"
     ).length;
@@ -67,7 +65,8 @@ export async function POST(request) {
         message: "Task completed successfully",
         user,
         isAnswerCorrect,
-        progress: `${completedTasks}/${sumTasks}`, // Task progress as "completed/total"
+        completedTaskCount: completedTasks,
+        totalTaskCount: sumTasks,
       },
       { status: 200 }
     );

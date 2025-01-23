@@ -23,12 +23,10 @@ export async function POST(request) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Ensure teamIds is an array
     if (!user.teamIds) {
-      user.teamIds = []; // Initialize if not already set
+      user.teamIds = [];
     }
 
-    // Check if the user is already part of the team
     if (user.teamIds.includes(teamId)) {
       return NextResponse.json(
         { message: "User is already part of this team" },
@@ -48,30 +46,27 @@ export async function POST(request) {
       );
     }
 
-    // Add the team to the user's teamIds
     user.teamIds.push(teamId);
     await user.save();
 
-    // Add the user to the team's members list
     team.members.push(userId);
     await team.save();
 
-    // Now, assign quizzes to the user based on the team
-    const assignedQuizzes = team.assignedQuizzes; // Get the assigned quizzes from the team
+    const assignedQuizzes = team.assignedQuizzes;
 
-    // If the team has assigned quizzes, assign them to the user
     if (assignedQuizzes && assignedQuizzes.length > 0) {
       const tasks = assignedQuizzes.map((quizId) => ({
         quizId,
-        status: "pending", // Default status for new quizzes
+        status: "pending",
       }));
 
-      // Add the quizzes to the user's tasks array
+      console.log("Assigned Tasks:", tasks);
+
       user.tasks.push(...tasks);
 
       user.totalTasks += tasks.length;
 
-      await user.save(); // Save the updated user document
+      await user.save();
     }
 
     return NextResponse.json(

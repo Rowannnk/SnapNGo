@@ -31,13 +31,13 @@ export async function GET(request) {
     const users = await User.aggregate([
       {
         $lookup: {
-          from: "quizzes", // Name of the Quiz collection
+          from: "quizzes",
           let: { taskQuizIds: "$tasks.quizId" },
           pipeline: [
-            { $unwind: "$quizzes" }, // Unwind quizzes array in Quiz model
+            { $unwind: "$quizzes" },
             {
               $match: {
-                $expr: { $in: ["$quizzes._id", "$$taskQuizIds"] }, // Match quiz IDs
+                $expr: { $in: ["$quizzes._id", "$$taskQuizIds"] },
               },
             },
             {
@@ -50,7 +50,7 @@ export async function GET(request) {
               },
             },
           ],
-          as: "quizDetails", // Result will be stored in this field
+          as: "quizDetails",
         },
       },
       {

@@ -9,16 +9,19 @@ export async function POST(request) {
   const { userId, taskId, selectedAnswer } = await request.json();
 
   try {
+    // Fetch user details
     const user = await User.findById(userId);
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
+    // Find the specific task
     const task = user.tasks.id(taskId);
     if (!task) {
       return NextResponse.json({ message: "Task not found" }, { status: 404 });
     }
 
+    // Check if task is already completed
     if (task.status === "completed") {
       return NextResponse.json(
         { message: "Task already completed" },
@@ -26,17 +29,37 @@ export async function POST(request) {
       );
     }
 
-    const quiz = await Quiz.findOne({
-      "quizzes._id": task.quizId, // Match the quizId inside the quizzes array
+    // Fetch all quiz details for tasks
+    const quizIds = user.tasks.map((t) => t.quizId); // Extract quiz IDs from tasks
+    const quizzes = await Quiz.aggregate([
+      { $unwind: "$quizzes" },
+      {
+        $match: {
+          "quizzes._id": { $in: quizIds }, // Match quiz IDs
+        },
+      },
+      {
+        $project: {
+          _id: "$quizzes._id",
+          question: "$quizzes.question",
+          options: "$quizzes.options",
+          answer: "$quizzes.answer",
+          rewardPoints: "$quizzes.rewardPoints",
+        },
+      },
+    ]);
+
+    // Map quiz details to tasks
+    const tasksWithDetails = user.tasks.map((t) => {
+      const quiz = quizzes.find((q) => q._id.equals(t.quizId));
+      return {
+        ...t.toObject(),
+        quizDetails: quiz || null, // Attach quiz details if found
+      };
     });
 
-    if (!quiz) {
-      return NextResponse.json({ message: "Quiz not found" }, { status: 404 });
-    }
-
-    const quizQuestion = quiz.quizzes.find(
-      (q) => q._id.toString() === task.quizId.toString()
-    );
+    // Find the specific quiz question
+    const quizQuestion = quizzes.find((q) => q._id.equals(task.quizId));
 
     if (!quizQuestion) {
       return NextResponse.json(
@@ -45,14 +68,18 @@ export async function POST(request) {
       );
     }
 
+    // Check if the answer is correct
     const isAnswerCorrect = selectedAnswer === quizQuestion.answer;
 
+    // Update task status
     task.status = "completed";
 
+    // Update user's points if the answer is correct
     if (isAnswerCorrect) {
       user.totalPoints += quizQuestion.rewardPoints;
     }
 
+    // Count total and completed tasks
     const sumTasks = user.tasks.length;
     const completedTasks = user.tasks.filter(
       (t) => t.status === "completed"
@@ -60,10 +87,16 @@ export async function POST(request) {
 
     await user.save();
 
+    // Attach the updated tasks with details to the response
+    const userWithDetails = {
+      ...user.toObject(),
+      tasks: tasksWithDetails,
+    };
+
     return NextResponse.json(
       {
         message: "Task completed successfully",
-        user,
+        user: userWithDetails, // Include tasks with quiz details
         isAnswerCorrect,
         completedTaskCount: completedTasks,
         totalTaskCount: sumTasks,

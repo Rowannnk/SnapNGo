@@ -2,6 +2,7 @@ import Team from "@/models/Team";
 import dbConnect from "@/utils/dbConnect";
 import User from "@/models/User";
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 
 export async function GET(request, { params }) {
   try {
@@ -33,20 +34,74 @@ export async function GET(request, { params }) {
   }
 }
 
+// export async function DELETE(request, { params }) {
+//   try {
+//     const { id } = params;
+//     const { adminUsername } = await request.json();
+
+//     await dbConnect();
+
+//     const team = await Team.findById(id);
+
+//     if (!team) {
+//       return NextResponse.json({ message: "Team not found." }, { status: 404 });
+//     }
+
+//     // Check if the adminUsername matches
+//     if (team.adminUsername !== adminUsername) {
+//       return NextResponse.json(
+//         { message: "Only the admin who created the team can delete it." },
+//         { status: 403 }
+//       );
+//     }
+
+//     // Remove the team ID from all users' teamIds array
+//     await User.updateMany(
+//       { teamIds: id }, // Find users where the team ID exists
+//       { $pull: { teamIds: id } } // Remove the team ID from the teamIds array
+//     );
+
+//     await Team.findByIdAndDelete(id);
+
+//     return NextResponse.json(
+//       { message: "Team deleted successfully." },
+//       { status: 200 }
+//     );
+//   } catch (error) {
+//     console.error("Error deleting team:", error);
+//     return NextResponse.json(
+//       { message: "An error occurred while deleting the team." },
+//       { status: 500 }
+//     );
+//   }
+// }
+
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = params; // ID of the team to delete
     const { adminUsername } = await request.json();
+
+    console.log("Request to delete team with ID:", id);
+    console.log("Admin username:", adminUsername);
+
+    // Ensure valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { message: "Invalid team ID." },
+        { status: 400 }
+      );
+    }
 
     await dbConnect();
 
     const team = await Team.findById(id);
 
+    // Check if team exists
     if (!team) {
       return NextResponse.json({ message: "Team not found." }, { status: 404 });
     }
 
-    // Check if the adminUsername matches
+    // Validate adminUsername
     if (team.adminUsername !== adminUsername) {
       return NextResponse.json(
         { message: "Only the admin who created the team can delete it." },
@@ -54,20 +109,40 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // Remove the team ID from all users' teamIds array
-    await User.updateMany(
-      { teamIds: id }, // Find users where the team ID exists
-      { $pull: { teamIds: id } } // Remove the team ID from the teamIds array
-    );
+    console.log("Team found. Resetting user data and removing team...");
 
+    // Find all users associated with this team
+    const affectedUsers = await User.find({ teamIds: id });
+
+    for (const user of affectedUsers) {
+      // Reset totalPoints and totalTasks to 0
+      user.totalPoints = 0;
+      user.totalTasks = 0;
+
+      // Remove all tasks related to this team's quizzes
+      user.tasks = user.tasks.filter(
+        (task) => !team.assignedQuizzes.includes(task.quizId)
+      );
+
+      // Remove the team ID from the user's teamIds
+      user.teamIds = user.teamIds.filter((teamId) => teamId.toString() !== id);
+
+      // Save the updated user document
+      await user.save();
+    }
+
+    console.log("All affected users updated.");
+
+    // Delete the team
     await Team.findByIdAndDelete(id);
 
+    console.log("Team deleted successfully.");
     return NextResponse.json(
       { message: "Team deleted successfully." },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error deleting team:", error);
+    console.error("Error during team deletion:", error);
     return NextResponse.json(
       { message: "An error occurred while deleting the team." },
       { status: 500 }

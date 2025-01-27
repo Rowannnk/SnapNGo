@@ -57,7 +57,12 @@ export async function POST(request) {
     if (assignedQuizzes && assignedQuizzes.length > 0) {
       const tasks = assignedQuizzes.map((quizId) => ({
         quizId,
-        status: "pending",
+        status: {
+          type: "pending",
+          isFinished: false,
+          isAnswerCorrect: false,
+          userAnswerNumber: null,
+        },
       }));
 
       console.log("Assigned Tasks:", tasks);

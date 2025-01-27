@@ -43,12 +43,18 @@ const userSchema = new Schema(
       {
         quizId: { type: Schema.Types.ObjectId, ref: "Quiz" },
         status: {
-          type: String,
-          enum: ["pending", "completed"],
-          default: "pending",
+          type: {
+            type: String,
+            enum: ["pending", "completed"],
+            default: "pending",
+          },
+          isFinished: { type: Boolean, default: false },
+          isAnswerCorrect: { type: Boolean, default: false },
+          userAnswerNumber: { type: Number, default: null },
         },
       },
     ],
+
     inventory: {
       type: [
         {

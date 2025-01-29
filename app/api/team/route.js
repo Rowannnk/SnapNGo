@@ -138,12 +138,13 @@ export async function POST(request) {
     // Create new team with adminId
     const newTeam = await Team.create({
       teamName,
-      adminId: adminUser._id, // Use adminId instead of adminUsername
-      teamImageUrl: teamImageUrl || "",
+      adminId: adminUser._id, // Link the team to the admin
+      adminEmail: adminUser.email, // Assign the admin's email
+      teamImageUrl: teamImageUrl || "", // Optional field
       maxMember,
-      members: [adminUser._id],
-      assignedQuizzes: allQuestionIds,
-      totalTasks: totalTasks,
+      members: [adminUser._id], // Admin is the first member
+      assignedQuizzes: allQuestionIds, // List of quiz question IDs
+      totalTasks: totalTasks, // Total number of tasks (questions)
     });
 
     // Link the team to the admin's `teamIds` array

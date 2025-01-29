@@ -7,18 +7,22 @@ const teamSchema = new Schema(
       required: true,
       unique: true,
     },
-    adminUsername: {
+
+    adminId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    adminEmail: {
       type: String,
       required: true,
     },
+
     teamImageUrl: {
       type: String,
       default: "",
     },
-    // totalPoints: {
-    //   type: Number,
-    //   default: 0, // Total points scored by all team members
-    // },
+
     totalTasks: {
       type: Number,
       default: 0,

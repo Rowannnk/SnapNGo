@@ -63,63 +63,55 @@ export async function GET(request) {
 
 // export async function DELETE(request) {
 //   try {
-//     // Connect to the database
-//     await dbConnect();
+//     // Extract userId from URL search parameters
+//     const url = new URL(request.url);
+//     const userId = url.searchParams.get("userId"); // Get userId from the URL
+//     const teamId = url.searchParams.get("teamId"); // Get teamId from the URL
 
-//     // Extract parameters from the request
-//     const { searchParams } = new URL(request.url);
-//     const adminEmail = searchParams.get("adminEmail");
-//     const teamId = searchParams.get("teamId");
-//     const userIdToRemove = searchParams.get("userId");
-
-//     // Validate input
-//     if (!adminEmail || !teamId || !userIdToRemove) {
+//     // Handle cases where the required parameters are missing
+//     if (!userId || !teamId) {
 //       return NextResponse.json(
-//         { message: "Admin email, team ID, and user ID are required." },
+//         { message: "Missing userId or teamId." },
 //         { status: 400 }
 //       );
 //     }
 
-//     // Find the team by ID and populate the adminId field
-//     const team = await Team.findById(teamId).populate("adminId");
+//     await dbConnect();
+
+//     // Find the team by teamId
+//     const team = await Team.findById(teamId);
 
 //     if (!team) {
 //       return NextResponse.json({ message: "Team not found." }, { status: 404 });
 //     }
 
-//     // Check if the logged-in user is the admin of the team
-//     if (team.adminId.email !== adminEmail) {
+//     // Find the user by userId
+//     const user = await User.findById(userId);
+
+//     if (!user) {
+//       return NextResponse.json({ message: "User not found." }, { status: 404 });
+//     }
+
+//     // Ensure the user is a member of the team
+//     if (!team.members.includes(userId)) {
 //       return NextResponse.json(
-//         { message: "You are not authorized to perform this action." },
+//         { message: "User is not a member of this team." },
 //         { status: 403 }
 //       );
 //     }
 
-//     // Remove the user from the members list in the team
-//     const updatedMembers = team.members.filter(
-//       (memberId) => memberId.toString() !== userIdToRemove
+//     // Remove the user from the team
+//     team.members = team.members.filter(
+//       (memberId) => memberId.toString() !== userId
 //     );
-
-//     if (updatedMembers.length === team.members.length) {
-//       return NextResponse.json(
-//         { message: "User not found in the team." },
-//         { status: 404 }
-//       );
-//     }
-
-//     // Update the team with the new list of members
-//     team.members = updatedMembers;
-
-//     // Update the user schema to remove the team association
-//     await User.findByIdAndUpdate(userIdToRemove, {
-//       $pull: { teams: teamId }, // Assuming there's a `teams` array in the User schema
-//     });
-
-//     // Save the updated team
 //     await team.save();
 
+//     // Optionally, remove the team from the user's teamIds if necessary
+//     user.teamIds = user.teamIds.filter((id) => id.toString() !== teamId);
+//     await user.save();
+
 //     return NextResponse.json(
-//       { message: "User removed from the team successfully." },
+//       { message: "User removed from team successfully." },
 //       { status: 200 }
 //     );
 //   } catch (error) {
@@ -133,75 +125,75 @@ export async function GET(request) {
 
 export async function DELETE(request) {
   try {
-    const { userId } = await request.json();
+    // Extract userId from URL search parameters
     const url = new URL(request.url);
-    const teamId = url.searchParams.get("teamId");
+    const userId = url.searchParams.get("userId"); // Get userId from the URL
+    const teamId = url.searchParams.get("teamId"); // Get teamId from the URL
 
-    if (!teamId || !userId) {
+    // Handle cases where the required parameters are missing
+    if (!userId || !teamId) {
       return NextResponse.json(
-        { message: "Team ID and User ID are required" },
+        { message: "Missing userId or teamId." },
         { status: 400 }
       );
     }
 
     await dbConnect();
+
+    // Find the team by teamId
     const team = await Team.findById(teamId);
+
     if (!team) {
-      return NextResponse.json({ message: "Team not found" }, { status: 404 });
+      return NextResponse.json({ message: "Team not found." }, { status: 404 });
     }
 
-    // Ensure the admin is the one performing the kick action
-    const { adminEmail } = url.searchParams;
-    if (team.adminEmail !== adminEmail) {
-      return NextResponse.json(
-        { message: "You are not authorized to perform this action." },
-        { status: 403 }
-      );
-    }
-
+    // Find the user by userId
     const user = await User.findById(userId);
+
     if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
+      return NextResponse.json({ message: "User not found." }, { status: 404 });
     }
 
-    // Remove the teamId from the user's teamIds array
-    if (!user.teamIds.includes(teamId)) {
+    // Ensure the user is a member of the team
+    if (!team.members.includes(userId)) {
       return NextResponse.json(
-        { message: "User is not part of this team" },
-        { status: 400 }
+        { message: "User is not a member of this team." },
+        { status: 403 }
       );
     }
 
     // Remove the user from the team's members array
     team.members = team.members.filter(
-      (memberId) => memberId.toString() !== userId.toString()
+      (memberId) => memberId.toString() !== userId
     );
+
+    // Remove the user from the assigned quizzes/tasks in the user's task array
+    user.tasks = user.tasks.filter((task) => {
+      // Assuming each task has a `quizId` field referencing the quizzes
+      return !team.assignedQuizzes.some(
+        (quizId) => quizId.toString() === task.quizId.toString()
+      );
+    });
+
+    // Decrease the user's total task count
+    user.totalTasks = user.tasks.length;
+
+    // Save the updated user and team
+    await user.save();
     await team.save();
 
-    // Remove the teamId from the user's teamIds array
-    user.teamIds = user.teamIds.filter(
-      (teamIdInUser) => teamIdInUser.toString() !== teamId.toString()
-    );
-
-    // Remove any tasks associated with the team from the user
-    user.tasks = user.tasks.filter(
-      (task) =>
-        !task.quizId || !team.assignedQuizzes.includes(task.quizId.toString())
-    );
-    user.totalTasks = user.tasks.length; // Adjust total tasks count accordingly
+    // Optionally, remove the team from the user's teamIds
+    user.teamIds = user.teamIds.filter((id) => id.toString() !== teamId);
     await user.save();
 
     return NextResponse.json(
-      { message: "User removed from the team successfully.", team },
+      { message: "User removed from team and tasks updated successfully." },
       { status: 200 }
     );
   } catch (error) {
     console.error("Error removing user from team:", error);
     return NextResponse.json(
-      {
-        message: "An error occurred while removing the user from the team.",
-        error: error.message,
-      },
+      { message: "An error occurred while removing the user from the team." },
       { status: 500 }
     );
   }

@@ -1,6 +1,7 @@
 import Team from "@/models/Team";
 import dbConnect from "@/utils/dbConnect";
 import { NextResponse } from "next/server";
+import User from "@/models/User";
 
 export async function GET(request, { params }) {
   try {
@@ -23,6 +24,9 @@ export async function GET(request, { params }) {
       .select(
         "teamName adminEmail teamImageUrl totalTasks maxMember assignedQuizzes members"
       )
+      .populate({
+        path: "members",
+      })
       .lean();
 
     if (!team) {
@@ -42,9 +46,9 @@ export async function GET(request, { params }) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error retrieving team by admin:", error);
+    console.error("Error retrieving team by admin:", error); // Log the full error
     return NextResponse.json(
-      { message: "An error occurred while retrieving the team." },
+      { message: `An error occurred: ${error.message}` }, // Include error details
       { status: 500 }
     );
   }

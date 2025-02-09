@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "Hi";
 
 export async function POST(request) {
   try {
-    const { name, email, password, dob, school, address } =
+    const { name, email, password, dob, school, address, gender } =
       await request.json();
 
     await dbConnect();
@@ -30,6 +30,7 @@ export async function POST(request) {
     const newUser = await User.create({
       name,
       email,
+      gender: gender,
       password: hashPassword,
       school: school || "",
       dob: dob || null,
@@ -59,6 +60,7 @@ export async function POST(request) {
           id: newUser._id,
           name: newUser.name,
           email: newUser.email,
+          gender: newUser.gender,
           school: newUser.school,
           dob: newUser.dob,
           school: newUser.school,

@@ -3,20 +3,58 @@ import User from "@/models/User";
 import dbConnect from "@/utils/dbConnect";
 import { NextResponse } from "next/server";
 import Quiz from "@/models/Quiz";
+import Item from "@/models/Item";
 
 // export async function GET(request, { params }) {
 //   await dbConnect();
 
-//   const { id } = await params;
+//   const { id } = params;
 
 //   try {
+//     // Find the user by ID
 //     const user = await User.findById(id);
 
 //     if (!user) {
 //       return NextResponse.json({ error: "User not found" }, { status: 404 });
 //     }
 
-//     return NextResponse.json(user);
+//     // Aggregate quiz details for tasks
+//     const quizIds = user.tasks.map((task) => task.quizId);
+
+//     const quizzes = await Quiz.aggregate([
+//       { $unwind: "$quizzes" },
+//       {
+//         $match: {
+//           "quizzes._id": { $in: quizIds }, // Match quiz IDs
+//         },
+//       },
+//       {
+//         $project: {
+//           _id: "$quizzes._id",
+//           question: "$quizzes.question",
+//           options: "$quizzes.options",
+//           answer: "$quizzes.answer",
+//           rewardPoints: "$quizzes.rewardPoints",
+//         },
+//       },
+//     ]);
+
+//     // Map quiz details to tasks
+//     const tasksWithDetails = user.tasks.map((task) => {
+//       const quiz = quizzes.find((quiz) => quiz._id.equals(task.quizId));
+//       return {
+//         ...task.toObject(),
+//         quizDetails: quiz || null, // Attach quiz details if found
+//       };
+//     });
+
+//     // Attach the detailed tasks back to the user object
+//     const userWithDetails = {
+//       ...user.toObject(),
+//       tasks: tasksWithDetails,
+//     };
+
+//     return NextResponse.json(userWithDetails);
 //   } catch (error) {
 //     console.error("Error retrieving user data by ID:", error);
 //     return NextResponse.json(
@@ -25,7 +63,6 @@ import Quiz from "@/models/Quiz";
 //     );
 //   }
 // }
-
 export async function GET(request, { params }) {
   await dbConnect();
 
@@ -39,14 +76,14 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Aggregate quiz details for tasks
+    // Get quiz details for user's tasks
     const quizIds = user.tasks.map((task) => task.quizId);
 
     const quizzes = await Quiz.aggregate([
       { $unwind: "$quizzes" },
       {
         $match: {
-          "quizzes._id": { $in: quizIds }, // Match quiz IDs
+          "quizzes._id": { $in: quizIds },
         },
       },
       {
@@ -60,19 +97,33 @@ export async function GET(request, { params }) {
       },
     ]);
 
+    // Get item details for user's inventory
+    const itemIds = user.inventory.map((inv) => inv.itemId);
+
+    const items = await Item.find({ _id: { $in: itemIds } }).lean();
+
     // Map quiz details to tasks
     const tasksWithDetails = user.tasks.map((task) => {
       const quiz = quizzes.find((quiz) => quiz._id.equals(task.quizId));
       return {
         ...task.toObject(),
-        quizDetails: quiz || null, // Attach quiz details if found
+        quizDetails: quiz || null,
       };
     });
 
-    // Attach the detailed tasks back to the user object
+    // Map item details to inventory
+    const inventoryWithDetails = user.inventory.map((inv) => {
+      const item = items.find((item) => item._id.equals(inv.itemId));
+      return {
+        ...inv.toObject(),
+        itemInfo: item || null,
+      };
+    });
+
     const userWithDetails = {
       ...user.toObject(),
       tasks: tasksWithDetails,
+      inventory: inventoryWithDetails,
     };
 
     return NextResponse.json(userWithDetails);

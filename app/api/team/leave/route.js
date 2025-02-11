@@ -27,9 +27,17 @@ export async function POST(request) {
       return NextResponse.json({ message: "Team not found." }, { status: 404 });
     }
 
+    // const updatedTotalPoints = user.totalPoints + user.teamPoints;
+
     await Team.updateOne({ _id: teamId }, { $pull: { members: userId } });
 
-    await User.updateOne({ _id: userId }, { $pull: { teamIds: teamId } });
+    await User.updateOne(
+      { _id: userId },
+      {
+        $pull: { teamIds: teamId },
+        $set: { teamPoints: 0 },
+      }
+    );
 
     await User.updateOne(
       { _id: userId },

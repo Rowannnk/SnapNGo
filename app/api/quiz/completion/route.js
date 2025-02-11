@@ -291,13 +291,14 @@ export async function POST(request) {
     const isAnswerCorrect = selectedAnswer === quizQuestion.answer;
 
     // Update task status
-    task.status.type = "completed"; // Mark task as completed
-    task.status.isFinished = true; // Mark as finished
-    task.status.isAnswerCorrect = isAnswerCorrect; // Store answer correctness
-    task.status.userAnswerNumber = selectedAnswer; // Store the user's selected answer
+    task.status.type = "completed";
+    task.status.isFinished = true;
+    task.status.isAnswerCorrect = isAnswerCorrect;
+    task.status.userAnswerNumber = selectedAnswer;
 
     // Update user's points if the answer is correct
     if (isAnswerCorrect) {
+      user.teamPoints += quizQuestion.rewardPoints;
       user.totalPoints += quizQuestion.rewardPoints;
     }
 
@@ -307,8 +308,7 @@ export async function POST(request) {
       (t) => t.status.type === "completed"
     ).length;
 
-    // Save the user with updated task status
-    await user.save(); // Ensure the updated task status is saved
+    await user.save();
 
     // Map quiz details to tasks
     const tasksWithDetails = user.tasks.map((t) => {

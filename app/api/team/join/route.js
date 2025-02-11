@@ -39,7 +39,7 @@ export async function POST(request) {
       return NextResponse.json({ message: "Team not found" }, { status: 404 });
     }
 
-    if (team.members.length >= team.maxMember) {
+    if (team.members.length >= team.maxMember + 1) {
       return NextResponse.json(
         { message: "Team has reached maximum member capacity" },
         { status: 400 }

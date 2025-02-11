@@ -149,6 +149,10 @@ const userSchema = new Schema(
       type: Number,
       default: 0,
     },
+    teamPoints: {
+      type: Number,
+      default: 0,
+    },
     totalTasks: {
       type: Number,
       default: 0,

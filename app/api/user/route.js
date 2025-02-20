@@ -98,8 +98,134 @@
 import User from "@/models/User";
 import Quiz from "@/models/Quiz";
 import Item from "@/models/Item"; // Import Item model
+import SnapQuiz from "@/models/SnapQuiz";
 import dbConnect from "@/utils/dbConnect";
 import { NextResponse } from "next/server";
+
+// export async function GET(request) {
+//   await dbConnect();
+
+//   try {
+//     const users = await User.aggregate([
+//       {
+//         $lookup: {
+//           from: "quizzes",
+//           let: { taskQuizIds: "$tasks.quizId" },
+//           pipeline: [
+//             { $unwind: "$quizzes" },
+//             {
+//               $match: {
+//                 $expr: { $in: ["$quizzes._id", "$$taskQuizIds"] },
+//               },
+//             },
+//             {
+//               $project: {
+//                 _id: "$quizzes._id",
+//                 question: "$quizzes.question",
+//                 options: "$quizzes.options",
+//                 answer: "$quizzes.answer",
+//                 rewardPoints: "$quizzes.rewardPoints",
+//               },
+//             },
+//           ],
+//           as: "quizDetails",
+//         },
+//       },
+//       {
+//         $addFields: {
+//           tasks: {
+//             $map: {
+//               input: "$tasks",
+//               as: "task",
+//               in: {
+//                 $mergeObjects: [
+//                   "$$task",
+//                   {
+//                     quizDetails: {
+//                       $arrayElemAt: [
+//                         {
+//                           $filter: {
+//                             input: "$quizDetails",
+//                             cond: { $eq: ["$$this._id", "$$task.quizId"] },
+//                           },
+//                         },
+//                         0,
+//                       ],
+//                     },
+//                     statusDetails: {
+//                       type: "$$task.status.type",
+//                       isFinished: "$$task.status.isFinished",
+//                       isAnswerCorrect: "$$task.status.isAnswerCorrect",
+//                       userAnswerNumber: "$$task.status.userAnswerNumber",
+//                     },
+//                   },
+//                 ],
+//               },
+//             },
+//           },
+//         },
+//       },
+
+//       {
+//         $lookup: {
+//           from: "items", // Collection name must match the items collection in MongoDB
+//           localField: "inventory.itemId", // `inventory` contains `itemId`, so we match it with `_id` from `items`
+//           foreignField: "_id",
+//           as: "itemDetails",
+//         },
+//       },
+//       {
+//         $addFields: {
+//           inventory: {
+//             $map: {
+//               input: "$inventory",
+//               as: "inv",
+//               in: {
+//                 $mergeObjects: [
+//                   "$$inv",
+//                   {
+//                     itemInfo: {
+//                       $arrayElemAt: [
+//                         {
+//                           $filter: {
+//                             input: "$itemDetails",
+//                             as: "item",
+//                             cond: { $eq: ["$$item._id", "$$inv.itemId"] },
+//                           },
+//                         },
+//                         0,
+//                       ],
+//                     },
+//                   },
+//                 ],
+//               },
+//             },
+//           },
+//         },
+//       },
+//       {
+//         $project: {
+//           quizDetails: 0,
+//           itemDetails: 0, // Remove extra lookup array
+//         },
+//       },
+//     ]);
+
+//     return NextResponse.json(users);
+//   } catch (error) {
+//     console.error(
+//       "Error fetching users with quiz details and inventory:",
+//       error
+//     );
+//     return NextResponse.json(
+//       {
+//         error: "Failed to fetch users with quiz details and inventory",
+//         details: error.message,
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
 
 export async function GET(request) {
   await dbConnect();
@@ -108,7 +234,7 @@ export async function GET(request) {
     const users = await User.aggregate([
       {
         $lookup: {
-          from: "quizzes",
+          from: "quizzes", // Lookup for quizzes
           let: { taskQuizIds: "$tasks.quizId" },
           pipeline: [
             { $unwind: "$quizzes" },
@@ -164,6 +290,54 @@ export async function GET(request) {
           },
         },
       },
+
+      // Lookup for SnapQuiz details
+      {
+        $lookup: {
+          from: "snapquizzes", // Look up in the SnapQuiz collection
+          localField: "snapTaskQuiz.snapQuizId", // Match this field with SnapQuiz _id
+          foreignField: "_id", // Match with SnapQuiz _id
+          as: "snapQuizDetails", // This will store the SnapQuiz details
+        },
+      },
+      {
+        $addFields: {
+          snapTaskQuiz: {
+            $map: {
+              input: "$snapTaskQuiz",
+              as: "snapQuiz",
+              in: {
+                $mergeObjects: [
+                  "$$snapQuiz",
+                  {
+                    snapQuizDetails: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$snapQuizDetails",
+                            cond: {
+                              $eq: ["$$this._id", "$$snapQuiz.snapQuizId"],
+                            },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                    statusDetails: {
+                      type: "$$snapQuiz.status.type",
+                      isFinished: "$$snapQuiz.status.isFinished",
+                      isAnswerCorrect: "$$snapQuiz.status.isAnswerCorrect",
+                      userAnswer: "$$snapQuiz.status.userAnswer",
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+
+      // Lookup for item details
       {
         $lookup: {
           from: "items", // Collection name must match the items collection in MongoDB
@@ -204,6 +378,7 @@ export async function GET(request) {
       {
         $project: {
           quizDetails: 0,
+          snapQuizDetails: 0, // Remove extra lookup array
           itemDetails: 0, // Remove extra lookup array
         },
       },
@@ -212,12 +387,13 @@ export async function GET(request) {
     return NextResponse.json(users);
   } catch (error) {
     console.error(
-      "Error fetching users with quiz details and inventory:",
+      "Error fetching users with quiz and snap quiz details and inventory:",
       error
     );
     return NextResponse.json(
       {
-        error: "Failed to fetch users with quiz details and inventory",
+        error:
+          "Failed to fetch users with quiz and snap quiz details and inventory",
         details: error.message,
       },
       { status: 500 }

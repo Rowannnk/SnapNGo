@@ -39,6 +39,11 @@ const teamSchema = new Schema(
       type: [{ type: Schema.Types.ObjectId, ref: "Quiz" }],
       default: [],
     },
+    // New field to store Snap Quiz IDs
+    assignedSnapQuizzes: {
+      type: [{ type: Schema.Types.ObjectId, ref: "SnapQuiz" }],
+      default: [],
+    },
   },
   { timestamps: true }
 );

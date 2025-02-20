@@ -7,14 +7,13 @@ export async function GET() {
   try {
     await dbConnect();
 
-    // Fetch all teams and populate their members
     const teams = await Team.find()
       .populate({
         path: "members",
-        select: "name totalPoints", // Include only the fields you need
-        options: { sort: { totalPoints: -1 } }, // Sort members by totalPoints in descending order
+        select: "name totalPoints",
+        options: { sort: { totalPoints: -1 } },
       })
-      .select("teamName members"); // Include only teamName and members in the response
+      .select("teamName members");
 
     if (!teams.length) {
       return NextResponse.json({ error: "No teams found." }, { status: 404 });

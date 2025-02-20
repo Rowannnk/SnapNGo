@@ -4,6 +4,7 @@ import dbConnect from "@/utils/dbConnect";
 import { NextResponse } from "next/server";
 import Quiz from "@/models/Quiz";
 import Item from "@/models/Item";
+import SnapQuiz from "@/models/SnapQuiz";
 
 // export async function GET(request, { params }) {
 //   await dbConnect();
@@ -18,40 +19,54 @@ import Item from "@/models/Item";
 //       return NextResponse.json({ error: "User not found" }, { status: 404 });
 //     }
 
-//     // Aggregate quiz details for tasks
+//     // Get quiz details for user's tasks
 //     const quizIds = user.tasks.map((task) => task.quizId);
 
-//     const quizzes = await Quiz.aggregate([
-//       { $unwind: "$quizzes" },
-//       {
-//         $match: {
-//           "quizzes._id": { $in: quizIds }, // Match quiz IDs
-//         },
-//       },
-//       {
-//         $project: {
-//           _id: "$quizzes._id",
-//           question: "$quizzes.question",
-//           options: "$quizzes.options",
-//           answer: "$quizzes.answer",
-//           rewardPoints: "$quizzes.rewardPoints",
-//         },
-//       },
-//     ]);
+// const quizzes = await Quiz.aggregate([
+//   { $unwind: "$quizzes" },
+//   {
+//     $match: {
+//       "quizzes._id": { $in: quizIds },
+//     },
+//   },
+//   {
+//     $project: {
+//       _id: "$quizzes._id",
+//       question: "$quizzes.question",
+//       options: "$quizzes.options",
+//       answer: "$quizzes.answer",
+//       rewardPoints: "$quizzes.rewardPoints",
+//     },
+//   },
+// ]);
+
+//     // Get item details for user's inventory
+//     const itemIds = user.inventory.map((inv) => inv.itemId);
+
+//     const items = await Item.find({ _id: { $in: itemIds } }).lean();
 
 //     // Map quiz details to tasks
 //     const tasksWithDetails = user.tasks.map((task) => {
 //       const quiz = quizzes.find((quiz) => quiz._id.equals(task.quizId));
 //       return {
 //         ...task.toObject(),
-//         quizDetails: quiz || null, // Attach quiz details if found
+//         quizDetails: quiz || null,
 //       };
 //     });
 
-//     // Attach the detailed tasks back to the user object
+//     // Map item details to inventory
+//     const inventoryWithDetails = user.inventory.map((inv) => {
+//       const item = items.find((item) => item._id.equals(inv.itemId));
+//       return {
+//         ...inv.toObject(),
+//         itemInfo: item || null,
+//       };
+//     });
+
 //     const userWithDetails = {
 //       ...user.toObject(),
 //       tasks: tasksWithDetails,
+//       inventory: inventoryWithDetails,
 //     };
 
 //     return NextResponse.json(userWithDetails);
@@ -70,7 +85,7 @@ export async function GET(request, { params }) {
 
   try {
     // Find the user by ID
-    const user = await User.findById(id);
+    const user = await User.findById(id).lean(); // Use .lean() to return plain objects
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -97,17 +112,44 @@ export async function GET(request, { params }) {
       },
     ]);
 
+    const snapQuizIds = user.snapTaskQuiz.map((task) => task.snapQuizId);
+
+    const snapQuizzes = await SnapQuiz.aggregate([
+      {
+        $match: {
+          _id: { $in: snapQuizIds },
+        },
+      },
+      {
+        $project: {
+          _id: 1, // Include _id field
+          quizName: 1, // Include quizName field
+          rewardPoints: 1, // Include rewardPoints field
+        },
+      },
+    ]);
+
     // Get item details for user's inventory
     const itemIds = user.inventory.map((inv) => inv.itemId);
-
     const items = await Item.find({ _id: { $in: itemIds } }).lean();
 
     // Map quiz details to tasks
     const tasksWithDetails = user.tasks.map((task) => {
       const quiz = quizzes.find((quiz) => quiz._id.equals(task.quizId));
       return {
-        ...task.toObject(),
+        ...task,
         quizDetails: quiz || null,
+      };
+    });
+
+    // Map snap quiz details to snapTaskQuiz
+    const snapTasksWithDetails = user.snapTaskQuiz.map((snapTask) => {
+      const snapQuiz = snapQuizzes.find((snapQuiz) =>
+        snapQuiz._id.equals(snapTask.snapQuizId)
+      );
+      return {
+        ...snapTask,
+        snapQuizDetails: snapQuiz || null,
       };
     });
 
@@ -115,14 +157,15 @@ export async function GET(request, { params }) {
     const inventoryWithDetails = user.inventory.map((inv) => {
       const item = items.find((item) => item._id.equals(inv.itemId));
       return {
-        ...inv.toObject(),
+        ...inv,
         itemInfo: item || null,
       };
     });
 
     const userWithDetails = {
-      ...user.toObject(),
+      ...user,
       tasks: tasksWithDetails,
+      snapTaskQuiz: snapTasksWithDetails,
       inventory: inventoryWithDetails,
     };
 

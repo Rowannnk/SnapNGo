@@ -3,21 +3,22 @@ import dbConnect from "@/utils/dbConnect";
 import { NextResponse } from "next/server";
 import User from "@/models/User";
 import Quiz from "@/models/Quiz";
+import SnapQuiz from "@/models/SnapQuiz";
 
 // export async function POST(request) {
 //   try {
 //     const {
 //       teamName,
-//       adminUsername,
+//       adminEmail, // Change from adminUsername to adminEmail for uniqueness
 //       teamImageUrl,
 //       maxMember,
-//       assignedQuizzes, //(e.g., ["msme", "arts"])
+//       assignedQuizzes,
 //     } = await request.json();
 
 //     await dbConnect();
 
-//     // Find the admin user by username
-//     const adminUser = await User.findOne({ name: adminUsername });
+//     // Find the admin user by email (ensures uniqueness)
+//     const adminUser = await User.findOne({ email: adminEmail });
 
 //     if (!adminUser) {
 //       return NextResponse.json(
@@ -46,27 +47,29 @@ import Quiz from "@/models/Quiz";
 //     // Fetch quizzes based on locations
 //     const quizzes = await Quiz.find({
 //       location: { $in: assignedQuizzes },
-//     }).select("quizzes"); // Fetch the quizzes array inside each quiz document
+//     }).select("quizzes");
 
 //     // Extract individual question IDs from the quizzes
-//     const allQuestionIds = quizzes.flatMap(
-//       (quiz) => quiz.quizzes.map((q) => q._id) // Get the _id of each question
+//     const allQuestionIds = quizzes.flatMap((quiz) =>
+//       quiz.quizzes.map((q) => q._id)
 //     );
 
 //     const totalTasks = allQuestionIds.length;
 
+//     // Create new team with adminId
 //     const newTeam = await Team.create({
 //       teamName,
-//       adminUsername,
-//       teamImageUrl: teamImageUrl || "",
+//       adminId: adminUser._id, // Link the team to the admin
+//       adminEmail: adminUser.email, // Assign the admin's email
+//       teamImageUrl: teamImageUrl || "", // Optional field
 //       maxMember,
-//       members: [adminUser._id],
-//       assignedQuizzes: allQuestionIds,
-//       totalTasks: totalTasks,
+//       members: [adminUser._id], // Admin is the first member
+//       assignedQuizzes: allQuestionIds, // List of quiz question IDs
+//       totalTasks: totalTasks, // Total number of tasks (questions)
 //     });
 
-//     // link the admin user to the team
-//     adminUser.teamId = newTeam._id;
+//     // Link the team to the admin's `teamIds` array
+//     adminUser.teamIds.push(newTeam._id);
 //     await adminUser.save();
 
 //     return NextResponse.json(
@@ -78,20 +81,25 @@ import Quiz from "@/models/Quiz";
 //     );
 //   } catch (error) {
 //     console.error("Error creating team:", error);
+//     if (error.errors) {
+//       console.error("Validation Errors:", error.errors);
+//     }
 //     return NextResponse.json(
 //       { message: "An error occurred while creating the team." },
 //       { status: 500 }
 //     );
 //   }
 // }
+
 export async function POST(request) {
   try {
     const {
       teamName,
-      adminEmail, // Change from adminUsername to adminEmail for uniqueness
+      adminEmail,
       teamImageUrl,
       maxMember,
       assignedQuizzes,
+      assignedSnapQuizzes, // Add assignedSnapQuizzes in the request
     } = await request.json();
 
     await dbConnect();
@@ -123,7 +131,7 @@ export async function POST(request) {
       );
     }
 
-    // Fetch quizzes based on locations
+    // Fetch quizzes based on locations (assignedQuizzes)
     const quizzes = await Quiz.find({
       location: { $in: assignedQuizzes },
     }).select("quizzes");
@@ -133,7 +141,15 @@ export async function POST(request) {
       quiz.quizzes.map((q) => q._id)
     );
 
-    const totalTasks = allQuestionIds.length;
+    // Fetch SnapQuizzes based on quiz names (assignedSnapQuizzes)
+    const snapQuizzes = await SnapQuiz.find({
+      quizName: { $in: assignedSnapQuizzes },
+    }).select("_id");
+
+    // Extract SnapQuiz IDs from the fetched SnapQuizzes
+    const allSnapQuizIds = snapQuizzes.map((snapQuiz) => snapQuiz._id);
+
+    const totalTasks = allQuestionIds.length + allSnapQuizIds.length; // Total tasks include both quiz and snap quiz questions
 
     // Create new team with adminId
     const newTeam = await Team.create({
@@ -144,7 +160,8 @@ export async function POST(request) {
       maxMember,
       members: [adminUser._id], // Admin is the first member
       assignedQuizzes: allQuestionIds, // List of quiz question IDs
-      totalTasks: totalTasks, // Total number of tasks (questions)
+      assignedSnapQuizzes: allSnapQuizIds, // List of SnapQuiz IDs
+      totalTasks: totalTasks, // Total number of tasks (questions from both quizzes)
     });
 
     // Link the team to the admin's `teamIds` array
@@ -170,43 +187,13 @@ export async function POST(request) {
   }
 }
 
-// export async function GET() {
-//   try {
-//     await dbConnect();
-
-//     const teams = await Team.find()
-//       .select(
-//         "teamName adminEmail teamImageUrl totalPoints totalTasks maxMember assignedQuizzes members"
-//       )
-//       .lean(); // .lean() returns plain JavaScript objects
-
-//     // Transform the data to include only the IDs for assignedQuizzes and members
-//     const transformedTeams = teams.map((team) => ({
-//       ...team,
-//       assignedQuizzes: team.assignedQuizzes || [],
-//       members: team.members || [],
-//     }));
-
-//     return NextResponse.json(
-//       { message: "Teams retrieved successfully.", teams: transformedTeams },
-//       { status: 200 }
-//     );
-//   } catch (error) {
-//     console.error("Error retrieving teams:", error);
-//     return NextResponse.json(
-//       { message: "An error occurred while retrieving the teams." },
-//       { status: 500 }
-//     );
-//   }
-// }
-
 export async function GET() {
   try {
     await dbConnect();
 
     const teams = await Team.find()
       .select(
-        "teamName adminId teamImageUrl totalTasks maxMember assignedQuizzes members"
+        "teamName adminId teamImageUrl totalTasks maxMember assignedQuizzes assignedSnapQuizzes  members"
       )
       .populate("adminId", "email")
       .lean();

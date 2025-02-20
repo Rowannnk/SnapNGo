@@ -172,6 +172,21 @@ const userSchema = new Schema(
         },
       },
     ],
+    snapTaskQuiz: [
+      {
+        snapQuizId: { type: Schema.Types.ObjectId, ref: "SnapQuiz" },
+        status: {
+          type: {
+            type: String,
+            enum: ["pending", "completed"],
+            default: "pending",
+          },
+          isFinished: { type: Boolean, default: false },
+          isAnswerCorrect: { type: Boolean, default: false },
+          userAnswer: { type: String, default: null },
+        },
+      },
+    ],
 
     gender: {
       type: String,

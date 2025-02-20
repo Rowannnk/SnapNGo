@@ -52,7 +52,8 @@ export async function POST(request) {
     team.members.push(userId);
     await team.save();
 
-    const assignedQuizzes = team.assignedQuizzes;
+    const assignedQuizzes = team.assignedQuizzes || [];
+    const assignedSnapQuizzes = team.assignedSnapQuizzes || [];
 
     if (assignedQuizzes && assignedQuizzes.length > 0) {
       const tasks = assignedQuizzes.map((quizId) => ({
@@ -64,12 +65,23 @@ export async function POST(request) {
           userAnswerNumber: null,
         },
       }));
+      const snapTasks = assignedSnapQuizzes.map((snapQuizId) => ({
+        snapQuizId,
+        status: {
+          type: "pending",
+          isFinished: false,
+          isAnswerCorrect: false,
+          userAnswer: null,
+        },
+      }));
 
       console.log("Assigned Tasks:", tasks);
+      console.log("Assigned Snap Tasks:", snapTasks);
 
       user.tasks.push(...tasks);
+      user.snapTaskQuiz.push(...snapTasks); // Add snapTaskQuiz
 
-      user.totalTasks += tasks.length;
+      user.totalTasks += tasks.length + snapTasks.length;
 
       await user.save();
     }

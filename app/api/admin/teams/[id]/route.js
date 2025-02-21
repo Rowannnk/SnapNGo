@@ -30,6 +30,10 @@ export async function GET(request, { params }) {
       .populate({
         path: "members",
       })
+      .populate({
+        path: "assignedSnapQuizzes",
+        model: SnapQuiz,
+      })
       .lean();
 
     if (!team) {

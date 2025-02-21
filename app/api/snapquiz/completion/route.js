@@ -9,14 +9,12 @@ export async function POST(request) {
   const { userId, taskId, selectedAnswer } = await request.json();
 
   try {
-    // Fetch user details
     const user = await User.findById(userId);
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Find the specific snap task in user's snapTaskQuiz array
-    const task = user.snapTaskQuiz.id(taskId); // Assuming snapTaskQuiz is an array
+    const task = user.snapTaskQuiz.id(taskId);
     if (!task) {
       return NextResponse.json(
         { message: "Snap task not found" },
@@ -32,26 +30,28 @@ export async function POST(request) {
       );
     }
 
-    // Find the SnapQuiz where quizName matches the selected answer
-    const snapQuiz = await SnapQuiz.findOne({ quizName: selectedAnswer });
-
-    // If no matching quiz is found, return incorrect answer response
+    const snapQuiz = await SnapQuiz.findById(task.snapQuizId);
     if (!snapQuiz) {
       return NextResponse.json(
-        { message: "Incorrect answer. No matching quiz found." },
-        { status: 200 }
+        { message: "Snap quiz not found" },
+        { status: 404 }
       );
     }
+
+    // Check if the selected answer matches the quizName of the specific quiz
+    const isAnswerCorrect = selectedAnswer === snapQuiz.quizName;
 
     // Mark the task as completed
     task.status.type = "completed";
     task.status.isFinished = true;
-    task.status.isAnswerCorrect = true; // Since the answer matches a quizName
+    task.status.isAnswerCorrect = isAnswerCorrect; // Set based on the comparison
     task.status.userAnswer = selectedAnswer;
 
-    // Update user's points
-    user.teamPoints += snapQuiz.rewardPoints;
-    user.totalPoints += snapQuiz.rewardPoints;
+    // Update user's points only if the answer is correct
+    if (isAnswerCorrect) {
+      user.teamPoints += snapQuiz.rewardPoints;
+      user.totalPoints += snapQuiz.rewardPoints;
+    }
 
     // Count total and completed snap tasks
     const sumNormalTasks = user.tasks.length;
@@ -76,10 +76,12 @@ export async function POST(request) {
 
     return NextResponse.json(
       {
-        message: "Correct answer! Snap task completed successfully.",
+        message: isAnswerCorrect
+          ? "Correct answer! Snap task completed successfully."
+          : "Incorrect answer. Snap task completed.",
         user,
-        isAnswerCorrect: true,
-        earnedPoints: snapQuiz.rewardPoints,
+        isAnswerCorrect,
+        earnedPoints: isAnswerCorrect ? snapQuiz.rewardPoints : 0,
         completedTaskCount: completedNormalTasks + completedSnapTasks,
         totalTaskCount: sumNormalTasks + sumSnapTasks,
       },

@@ -1,49 +1,51 @@
-import Quiz from "@/models/Quiz"; // Assuming your Quiz model is imported
-import dbConnect from "@/utils/dbConnect"; // Your database connection utility
+import Quiz from "@/models/Quiz";
+import SnapQuiz from "@/models/SnapQuiz";
+import dbConnect from "@/utils/dbConnect";
 import { NextResponse } from "next/server";
 
 export async function POST(request) {
   try {
-    const { teamId, quizzes } = await request.json(); // Parse teamId and quiz IDs from the request body
+    const { teamId, quizzes, snapQuizzes } = await request.json(); // Parse teamId, quizzes, and snapQuizzes from request body
 
-    if (!teamId || !quizzes || quizzes.length === 0) {
+    if (!teamId || (!quizzes && !snapQuizzes)) {
       return NextResponse.json(
-        { message: "Team ID and quiz IDs are required." },
+        {
+          message:
+            "Team ID and at least one quiz array (quizzes or snapQuizzes) are required.",
+        },
         { status: 400 }
       );
     }
 
     await dbConnect(); // Ensure database connection
 
-    // Fetch quizzes that match the provided IDs and are associated with the team
-    const quizDetails = await Quiz.find({
-      "quizzes._id": { $in: quizzes }, // Match the quiz _id within the nested quizzes array
-    }).select("quizzes"); // Select only the quizzes array
-
-    if (quizDetails.length === 0) {
-      return NextResponse.json(
-        { message: "No quizzes found for the provided quiz IDs." },
-        { status: 404 }
+    let quizDetails = [];
+    if (quizzes && quizzes.length > 0) {
+      quizDetails = await Quiz.find({ "quizzes._id": { $in: quizzes } }).select(
+        "quizzes"
       );
+
+      // Extract only the matching quizzes
+      quizDetails = quizDetails
+        .map((quiz) =>
+          quiz.quizzes.filter((q) => quizzes.includes(q._id.toString()))
+        )
+        .flat();
     }
 
-    // Filter out the specific quizzes matching the requested quiz IDs
-    const filteredQuizzes = quizDetails
-      .map((quiz) =>
-        quiz.quizzes.filter((q) => quizzes.includes(q._id.toString()))
-      )
-      .flat();
-
-    if (filteredQuizzes.length === 0) {
-      return NextResponse.json(
-        { message: "No quizzes found for the provided team and quiz IDs." },
-        { status: 404 }
-      );
+    let snapQuizDetails = [];
+    if (snapQuizzes && snapQuizzes.length > 0) {
+      snapQuizDetails = await SnapQuiz.find({
+        _id: { $in: snapQuizzes },
+      }).select("_id quizName rewardPoints");
     }
 
-    // Return the quiz details
     return NextResponse.json(
-      { message: "Quizzes retrieved successfully.", quizzes: filteredQuizzes },
+      {
+        message: "Quizzes retrieved successfully.",
+        quizzes: quizDetails,
+        snapQuizzes: snapQuizDetails,
+      },
       { status: 200 }
     );
   } catch (error) {

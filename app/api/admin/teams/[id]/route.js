@@ -9,7 +9,7 @@ export async function GET(request, { params }) {
   try {
     await dbConnect();
 
-    const { id } = params;
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const adminEmail = searchParams.get("adminEmail");
 
@@ -32,7 +32,7 @@ export async function GET(request, { params }) {
       })
       .populate({
         path: "assignedSnapQuizzes",
-        model: SnapQuiz,
+        select: "_id",
       })
       .lean();
 

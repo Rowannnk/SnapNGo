@@ -51,6 +51,7 @@ export async function POST(request) {
     if (isAnswerCorrect) {
       user.teamPoints += snapQuiz.rewardPoints;
       user.totalPoints += snapQuiz.rewardPoints;
+      await user.save();
     }
 
     // Count total and completed snap tasks

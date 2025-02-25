@@ -43,7 +43,8 @@ export async function GET(request, { params }) {
     const team = await Team.findById(id)
       .populate({
         path: "members",
-        select: "name email profileImageUrl role teamIds totalPoints",
+        select:
+          "name email profileImageUrl role teamIds totalPoints teamPoints",
       })
       .populate({
         path: "adminId",
@@ -73,6 +74,7 @@ export async function GET(request, { params }) {
         role: member.role,
         teamIds: member.teamIds,
         totalPoints: member.totalPoints,
+        teamPoints: member.teamPoints,
       })),
     };
 

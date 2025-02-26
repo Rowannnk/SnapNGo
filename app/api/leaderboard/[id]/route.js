@@ -1,5 +1,6 @@
 import dbConnect from "@/utils/dbConnect";
 import Team from "@/models/Team";
+import User from "@/models/User";
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 
@@ -17,12 +18,14 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Find the team by ID and populate members
-    const team = await Team.findById(teamId).populate({
-      path: "members",
-      select: "name teamPoints", // Include only the fields you need
-      options: { sort: { teamPoints: -1 } }, // Sort members by totalPoints in descending order
-    });
+    // Find the team by ID and populate members and admin
+    const team = await Team.findById(teamId)
+      .populate({
+        path: "members",
+        select: "name teamPoints", // Only include name and teamPoints
+        options: { sort: { teamPoints: -1 } }, // Sort members by teamPoints in descending order
+      })
+      .populate("adminId", "name"); // Populate the admin's name
 
     if (!team) {
       return NextResponse.json(
@@ -31,12 +34,18 @@ export async function GET(request, { params }) {
       );
     }
 
+    // Get the adminId to filter out the admin
+    const adminId = team.adminId._id.toString();
+
+    // Filter out the admin from the members list
     const leaderboard = {
       teamName: team.teamName,
-      members: team.members.map((member) => ({
-        name: member.name,
-        teamPoints: member.teamPoints,
-      })),
+      members: team.members
+        .filter((member) => member._id.toString() !== adminId) // Exclude admin from leaderboard
+        .map((member) => ({
+          name: member.name,
+          teamPoints: member.teamPoints,
+        })),
     };
 
     return NextResponse.json(

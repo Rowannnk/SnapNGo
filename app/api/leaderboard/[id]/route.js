@@ -7,7 +7,7 @@ export async function GET(request, { params }) {
   // Establish database connection
   await dbConnect();
 
-  const { id: teamId } = params;
+  const { id: teamId } = await params;
 
   try {
     if (!mongoose.Types.ObjectId.isValid(teamId)) {
@@ -20,8 +20,8 @@ export async function GET(request, { params }) {
     // Find the team by ID and populate members
     const team = await Team.findById(teamId).populate({
       path: "members",
-      select: "name totalPoints", // Include only the fields you need
-      options: { sort: { totalPoints: -1 } }, // Sort members by totalPoints in descending order
+      select: "name teamPoints", // Include only the fields you need
+      options: { sort: { teamPoints: -1 } }, // Sort members by totalPoints in descending order
     });
 
     if (!team) {
@@ -35,7 +35,7 @@ export async function GET(request, { params }) {
       teamName: team.teamName,
       members: team.members.map((member) => ({
         name: member.name,
-        totalPoints: member.totalPoints,
+        teamPoints: member.teamPoints,
       })),
     };
 

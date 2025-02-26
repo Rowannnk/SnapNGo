@@ -10,8 +10,8 @@ export async function GET() {
     const teams = await Team.find()
       .populate({
         path: "members",
-        select: "name totalPoints",
-        options: { sort: { totalPoints: -1 } },
+        select: "name teamPoints",
+        options: { sort: { teamPoints: -1 } },
       })
       .select("teamName members");
 
@@ -23,7 +23,7 @@ export async function GET() {
       teamName: team.teamName,
       members: team.members.map((member) => ({
         name: member.name,
-        totalPoints: member.totalPoints,
+        teamPoints: member.teamPoints,
       })),
     }));
 

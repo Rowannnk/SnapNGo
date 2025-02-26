@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 export async function GET(request, { params }) {
   await dbConnect();
 
-  const { id } = params;
+  const { id } = await params;
 
   try {
     const admin = await User.findOne({ _id: id, role: "admin" }).select(

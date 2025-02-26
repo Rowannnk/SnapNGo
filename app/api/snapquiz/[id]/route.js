@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 export async function GET(request, { params }) {
   await dbConnect();
 
-  const { id } = params;
+  const { id } = await params;
 
   try {
     const snapQuiz = await SnapQuiz.findById(id);
@@ -30,7 +30,7 @@ export async function GET(request, { params }) {
 export async function DELETE(request, { params }) {
   await dbConnect();
 
-  const { id } = params;
+  const { id } = await params;
 
   try {
     const deletedQuiz = await SnapQuiz.findByIdAndDelete(id);

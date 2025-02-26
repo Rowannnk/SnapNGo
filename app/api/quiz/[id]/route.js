@@ -4,7 +4,7 @@ import Quiz from "@/models/Quiz";
 
 export async function GET(request, { params }) {
   try {
-    const { id } = params; // Quiz question ID
+    const { id } = await params; // Quiz question ID
 
     await dbConnect();
 

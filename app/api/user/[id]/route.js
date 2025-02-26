@@ -81,7 +81,7 @@ import SnapQuiz from "@/models/SnapQuiz";
 export async function GET(request, { params }) {
   await dbConnect();
 
-  const { id } = params;
+  const { id } = await params;
 
   try {
     // Find the user by ID
@@ -182,7 +182,7 @@ export async function GET(request, { params }) {
 export async function PATCH(request, { params }) {
   await dbConnect();
 
-  const { id } = params;
+  const { id } = await params;
 
   try {
     const updateData = await request.json();
@@ -211,7 +211,7 @@ export async function PATCH(request, { params }) {
 export async function DELETE(request, { params }) {
   await dbConnect();
 
-  const { id } = params;
+  const { id } = await params;
 
   try {
     const user = await User.findById(id);

@@ -36,7 +36,7 @@ import mongoose from "mongoose";
 
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     await dbConnect();
 
@@ -94,7 +94,7 @@ export async function GET(request, { params }) {
 export async function DELETE(request, { params }) {
   await dbConnect();
   try {
-    const { id } = params; // Team ID to delete
+    const { id } = await params; // Team ID to delete
     const { adminEmail } = await request.json();
 
     console.log("Request to delete team with ID:", id);

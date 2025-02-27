@@ -42,23 +42,28 @@ export async function POST(request) {
     );
 
     if (existingItemIndex > -1) {
-      // If the item already exists in the inventory, return a message
       return new Response(
         JSON.stringify({ message: "Item already purchased" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // If it's a new item, add it to the inventory
+    // Deduct points from the user
+    user.totalPoints -= item.price;
+
+    // Add item to the inventory
     user.inventory.push({ itemId, quantity: 1 });
 
     // Save the updated user
     await user.save();
 
-    return new Response(JSON.stringify(user), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ message: "Purchase successful", user }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   } catch (error) {
     console.error("Error processing purchase:", error);
     return new Response(
